@@ -1,0 +1,26 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing Docker..."
+      - yum install -y docker
+      - service docker start
+  pre_build:
+    commands:
+      - echo "Starting pre-build phase..."
+      - docker build -t nextjs15-app .
+      - docker run --name nextjs15-test -d nextjs15-app
+  build:
+    commands:
+      - echo "Running tests in the container..."
+      - docker exec nextjs15-test npm test
+      - echo "Build completed successfully!"
+  post_build:
+    commands:
+      - echo "Pushing Docker image to Amazon ECR..."
+      - docker tag nextjs15-app <your-account-id>.dkr.ecr.<your-region>.amazonaws.com/nextjs15-app:latest
+      - $(aws ecr get-login-password --region <your-region>) | docker login --username AWS --password-stdin <your-account-id>.dkr.ecr.<your-region>.amazonaws.com
+      - docker push <your-account-id>.dkr.ecr.<your-region>.amazonaws.com/nextjs15-app:latest
